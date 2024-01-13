@@ -1,11 +1,12 @@
 
-// 创建react对象
+import React from './React.js'
 
+// 创建react对象
 const ReactDOM = {
     createRoot(container) {
         return {
             render(App) {
-                render(App, container)
+                React.render(App, container)
             }
         }
     }
