@@ -52,25 +52,35 @@ function createElement(type, props, ...children) {
 // textNode.nodeValue = textEl.props.nodeValue
 // dom.append(textNode)
 
+// 创建dom
+function createDom(el) {
+  return el.type === "TEXT_ELEMENT" ? document.createTextNode("") : document.createElement(el.type)
+}
+
+// 将dom 和props传入
+function updateProps(dom, el) {
+  // 循环处理所有的props 多个属性的情况 每个属性依此添加 如class 和 id
+  Object.keys(el.props).forEach(key => {
+    // 注意 children 不是元素属性 不在这里处理
+    if (key !== "children") {
+      dom[key] = el.props[key]
+    }
+  })
+}
+
 // 1.工作流函数 接收一个参数
-// 需要返回下一个要执行的节点
+// 需要返回下一个要执行的节点 el->fiber
 function performWorkOfUnit(el) {
   // 处理元素 判断是不是有dom
   if (!el.dom) {
     // 没有dom
     // 创建一个,并且赋值给el
-    const dom = (el.dom = el.type === "TEXT_ELEMENT" ? document.createTextNode("") : document.createElement(el.type))
+    const dom = (el.dom = createDom(el))
 
-    // 将dom 添加到父级的兄弟节点
+    // 将dom 进行渲染 父级进行后面插入
     el.parent.dom.append(dom)
 
-    // 循环处理所有的props 多个属性的情况 每个属性依此添加 如class 和 id
-    Object.keys(el.props).forEach(key => {
-      // 注意 children 不是元素属性 不在这里处理
-      if (key !== "children") {
-        dom[key] = el.props[key]
-      }
-    })
+    updateProps(dom, el)
   }
 
   // 有dom 转为链表方式
@@ -90,7 +100,7 @@ function performWorkOfUnit(el) {
   return el.parent?.sibling
 }
 
-// 2.将树转为链表
+// 2.将树转为链表 el -> fiber
 function initChildren(el) {
   const children = el.props.children
   // 遍历所有的children
@@ -146,15 +156,17 @@ function render(el, root) {
 function workflow(time) {
   // 1. 执行工作 在空闲时间进行渲染
   let hasIdleTime = true
+  console.log(time.timeRemaining())
   //   有空闲时间 并且有待执行节点
   while (hasIdleTime && nextWorkflow) {
-    performWorkOfUnit(nextWorkflow)
+    // 接收返回的下一个需要执行的节点
+    nextWorkflow = performWorkOfUnit(nextWorkflow)
     // 当空闲时间大于1时，继续执行
     hasIdleTime = time.timeRemaining() >= 1
   }
 
-  //   空闲时间结束，继续执行
-//   performWorkOfUnit(workflow)
+  //  循环执行,一有空闲时间和有待执行节点，继续执行while中的代码
+  requestIdleCallback(workflow)
 }
 
 // fiber 函数 核心api 传入一个回调
