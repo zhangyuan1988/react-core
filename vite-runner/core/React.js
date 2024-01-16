@@ -27,7 +27,6 @@ function createTextNode(text) {
 // 创建元素结构
 // 剩余参数 改成数组形式
 function createElement(type, props, ...children) {
-  console.log(children)
   return {
     type,
     props: {
@@ -35,7 +34,8 @@ function createElement(type, props, ...children) {
       // 处理字符串和对象的形式
       children: children.map(child => {
         // 是字符串 在这里处理，不是字符串 render函数处理
-        return typeof child === "string" ? createTextNode(child) : child
+        // 还要处理数字的情况
+        return typeof child === "string"|| typeof child === "number" ? createTextNode(child) : child
       }),
     },
   }
@@ -57,9 +57,16 @@ function updateProps(dom, fiber) {
   })
 }
 
-// 1.工作流函数 接收一个参数
-// 需要返回下一个要执行的节点 fiber->fiber
-function performWorkOfUnit(fiber) {
+// 函数式的处理
+function updateFunction(fiber) {
+  // 将函数形式的组件，执行展开 返回的结构就是dom结构，作为dom的children
+  const children = [fiber.type(fiber.props)]
+  // 并且重新init
+  initChildren(fiber,children)
+}
+
+// 普通的处理
+function updateHost(fiber) {
   // 处理元素 判断是不是有dom
   if (!fiber.dom) {
     // 没有dom
@@ -72,27 +79,50 @@ function performWorkOfUnit(fiber) {
 
     updateProps(dom, fiber)
   }
-
   // 有dom 转为链表方式
-  initChildren(fiber)
+  initChildren(fiber, fiber.props.children)
+}
+
+// 1.工作流函数 接收一个参数
+// 需要返回下一个要执行的节点 fiber->fiber
+function performWorkOfUnit(fiber) {
+  // 处理函数形式
+  console.log(fiber.props);
+  const isFunction = typeof fiber.type === "function"
+  if (isFunction) {
+    updateFunction(fiber)
+  } else {
+    updateHost(fiber)
+  }
 
   //   有child, 先返回child
   if (fiber.child) {
     return fiber.child
   }
+  
 
   //   其次返回自己的兄弟节点
-  if (fiber.sibling) {
-    return fiber.sibling
+  // if (fiber.sibling) {
+  //   return fiber.sibling
+  // }
+
+  // 处理多级嵌套的情况
+  let nextFiber = fiber;
+  while (nextFiber) {
+    // 如果下一个兄弟节点存在，返回下一个兄弟节点
+    if (nextFiber.sibling) return nextFiber.sibling;
+    // 如果下一个兄弟节点不存在，返回父级节点，继续向上查找 循环处理
+    nextFiber = nextFiber.parent;
   }
 
-  //   最后返回父级的兄弟节点
-  return fiber.parent?.sibling
+  // //   最后返回父级的兄弟节点
+  // return fiber.parent?.sibling
 }
 
 // 2.将树转为链表 fiber -> fiber
-function initChildren(fiber) {
-  const children = fiber.props.children
+function initChildren(fiber, children) {
+  // 这里直接将children传过来 统一各个函数，然后遍历
+  // const children = fiber.props.children
   // 遍历所有的children
   // 记录上一个节点
   let prev = null
@@ -147,9 +177,21 @@ function commitRoot(fiber) {
 
 // 递归提交
 function commitWork(fiber) {
+  // 没有元素终止
   if (!fiber) return
+  let fiberParent = fiber.parent;
+
+  // 当前节点（函数情况下有可能没有dom）没有dom时，向上寻找
+  while (!fiberParent.dom) {
+    fiberParent = fiberParent.parent;
+  }
+
+  // 直到查找到有dom的父级节点，在进行渲染
+  if (fiber.dom) {
+    fiberParent.dom.append(fiber.dom);
+  }
   // 根节点的child为主节点的parent是 根节点 开始提交 父级节点
-  fiber.parent.dom.append(fiber.dom)
+  // fiber.parent.dom.append(fiber.dom)
   // 依次提交兄弟和孩子节点
   commitWork(fiber.child)
   commitWork(fiber.sibling)
@@ -170,9 +212,8 @@ function workflow(time) {
 
   //   2.在这里统一提交
   // 下一个节点为空 并且有根节点，再统一提交
-  if (!nextWorkflow&&root) {
+  if (!nextWorkflow && root) {
     // 根节点的child为主节点
-    console.log(root);
     commitRoot(root.child)
   }
 
