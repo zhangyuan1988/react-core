@@ -35,7 +35,7 @@ function createElement(type, props, ...children) {
       children: children.map(child => {
         // 是字符串 在这里处理，不是字符串 render函数处理
         // 还要处理数字的情况
-        return typeof child === "string"|| typeof child === "number" ? createTextNode(child) : child
+        return typeof child === "string" || typeof child === "number" ? createTextNode(child) : child
       }),
     },
   }
@@ -49,11 +49,23 @@ function createDom(fiber) {
 // 将dom 和props传入
 function updateProps(dom, fiber) {
   // 循环处理所有的props 多个属性的情况 每个属性依此添加 如class 和 id
+
+
+  // 事件处理，需要处理props 因为都是通过属性传递的
   Object.keys(fiber.props).forEach(key => {
     // 注意 children 不是元素属性 不在这里处理
-    if (key !== "children") {
-      dom[key] = fiber.props[key]
+
+    // 判断是不是on开头
+    if (key.startsWith('on')) {
+      // 将dom进行监听
+      console.log(fiber);
+      dom.addEventListener(key.slice(2).toLowerCase(), fiber.props[key])
+    } else {
+      if (key !== "children") {
+        dom[key] = fiber.props[key]
+      }
     }
+
   })
 }
 
@@ -62,7 +74,7 @@ function updateFunction(fiber) {
   // 将函数形式的组件，执行展开 返回的结构就是dom结构，作为dom的children
   const children = [fiber.type(fiber.props)]
   // 并且重新init
-  initChildren(fiber,children)
+  initChildren(fiber, children)
 }
 
 // 普通的处理
@@ -87,7 +99,6 @@ function updateHost(fiber) {
 // 需要返回下一个要执行的节点 fiber->fiber
 function performWorkOfUnit(fiber) {
   // 处理函数形式
-  console.log(fiber.props);
   const isFunction = typeof fiber.type === "function"
   if (isFunction) {
     updateFunction(fiber)
@@ -99,7 +110,7 @@ function performWorkOfUnit(fiber) {
   if (fiber.child) {
     return fiber.child
   }
-  
+
 
   //   其次返回自己的兄弟节点
   // if (fiber.sibling) {
