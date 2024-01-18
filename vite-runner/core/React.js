@@ -35,7 +35,6 @@ function createElement(type, props, ...children) {
       children: children.map(child => {
 
         // 检查节点
-        console.log(child);
 
         // 是字符串 在这里处理，不是字符串 render函数处理
         // 还要处理数字的情况
@@ -91,10 +90,15 @@ function updateProps(dom, nextProps, prevProps) {
 
 // 函数式的处理
 function updateFunction(fiber) {
+      // 保存一下wipFiber
+  // 这是当前的开始节点
+  wipFiber = fiber
   // 将函数形式的组件，执行展开 返回的结构就是dom结构，作为dom的children
   const children = [fiber.type(fiber.props)]
+
   // 并且重新init
   reconcileChildren(fiber, children)
+
 }
 
 // 普通的处理
@@ -242,7 +246,7 @@ let wipRoot = null
 // 声明当前的节点
 let currentRoot = null
 let nextWorkflow = null
-
+let wipFiber = null
 let deletions = []
 // 创建渲染函数
 // 接受元素和容器
@@ -260,17 +264,34 @@ function render(fiber, container) {
 }
 
 // 更新节点
+
+// 查找开始和结束点
+// 1.开始是当前节点
+// 结束是当处理到兄弟节点时
 function update() {
   // 存储下一个当前的树
-  wipRoot = {
-    dom: currentRoot.dom,
-    props: currentRoot.props,
-    // 保存原来的树
-    alternate: currentRoot,
+  // wipFiber是全局变量，当再次创建FunctionComponent函数时，会被赋值，这里用闭包保存一下 否则会被下一个覆盖
+  // 放在函数中执行
+  let currentFiber = wipFiber
+  return () => {
+
+    wipRoot = {
+      // currentFiber就是当前的树，直接展开
+      ...currentFiber,
+      // 指针 重新指向
+      alternate: currentRoot
+    }
+    // wipRoot = {
+    //   dom: currentRoot.dom,
+    //   props: currentRoot.props,
+    //   // 保存原来的树
+    //   alternate: currentRoot,
+    // }
+    // 根节点
+    nextWorkflow = wipRoot
   }
-  // 根节点
-  nextWorkflow = wipRoot
 }
+
 
 // 创建统一提交函数
 function commitRoot() {
@@ -288,7 +309,6 @@ function commitRoot() {
 
 // 移除节点
 function commitDeletion(fiber) {
-  console.log(fiber);
   // 有dom时 时普通节点，没有就是fun
   if (fiber.dom) {
     // 查找节点 有可能上级没有节点，就循环往上走 直到找到
@@ -302,7 +322,6 @@ function commitDeletion(fiber) {
   } else {
     // 循环处理
     // function component 的dom存在于child中
-    console.log(fiber);
     commitDeletion(fiber.child)
   }
 }
@@ -346,6 +365,15 @@ function workflow(time) {
   while (hasIdleTime && nextWorkflow) {
     // 接收返回的下一个需要执行的节点
     nextWorkflow = performWorkOfUnit(nextWorkflow)
+
+    // wipRoot是当前操作的节点
+    if(wipRoot?.sibling?.type===nextWorkflow?.type){
+      // 当前和下一个相同 需要置空跳出循环
+      // 查看当前节点
+      console.log(wipRoot,nextWorkflow);
+      nextWorkflow = undefined
+    }
+    
     // 当空闲时间大于1时，继续执行
     hasIdleTime = time.timeRemaining() >= 1
   }
