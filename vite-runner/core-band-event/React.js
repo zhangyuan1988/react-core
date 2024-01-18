@@ -47,41 +47,25 @@ function createDom(fiber) {
 }
 
 // 将dom 和props传入
-// 处理更新，删除和新增
-function updateProps(dom, nextProps, prevProps) {
+function updateProps(dom, fiber) {
   // 循环处理所有的props 多个属性的情况 每个属性依此添加 如class 和 id
 
-  // 1.旧的有 新的没有 删除
-  Object.keys(prevProps).forEach(key => {
-    if (key !== "children") {
-      // 检测新的属性 是否在 旧的属性中
-      if (!(key in nextProps)) {
-        dom.removeAttribute(key)
-      }
-    }
-  })
 
-  // 2.新的有 旧的没有 新增
-
-  // 3.新的有 旧的也有 更新
   // 事件处理，需要处理props 因为都是通过属性传递的
-  Object.keys(nextProps).forEach(key => {
+  Object.keys(fiber.props).forEach(key => {
     // 注意 children 不是元素属性 不在这里处理
+
     // 判断是不是on开头
-    if (key !== "children") {
-      // 判断新旧的属性值是否相同 不相同的情况下才需要更新
-      if (nextProps[key] !== prevProps[key]) {
-        if (key.startsWith("on")) {
-          // 将dom进行监听
-          const eventType = key.slice(2).toLowerCase()
-          // 移除事件，将上一个props传出去
-          dom.removeEventListener(eventType, prevProps[key])
-          dom.addEventListener(eventType, nextProps[key])
-        } else {
-          dom[key] = nextProps[key]
-        }
+    if (key.startsWith('on')) {
+      // 将dom进行监听
+      console.log(fiber);
+      dom.addEventListener(key.slice(2).toLowerCase(), fiber.props[key])
+    } else {
+      if (key !== "children") {
+        dom[key] = fiber.props[key]
       }
     }
+
   })
 }
 
@@ -105,7 +89,7 @@ function updateHost(fiber) {
     // 统一提交 这里就不需要了
     // fiber.parent.dom.append(dom)
 
-    updateProps(dom, fiber.props, {})
+    updateProps(dom, fiber)
   }
   // 有dom 转为链表方式
   initChildren(fiber, fiber.props.children)
@@ -127,18 +111,19 @@ function performWorkOfUnit(fiber) {
     return fiber.child
   }
 
+
   //   其次返回自己的兄弟节点
   // if (fiber.sibling) {
   //   return fiber.sibling
   // }
 
   // 处理多级嵌套的情况
-  let nextFiber = fiber
+  let nextFiber = fiber;
   while (nextFiber) {
     // 如果下一个兄弟节点存在，返回下一个兄弟节点
-    if (nextFiber.sibling) return nextFiber.sibling
+    if (nextFiber.sibling) return nextFiber.sibling;
     // 如果下一个兄弟节点不存在，返回父级节点，继续向上查找 循环处理
-    nextFiber = nextFiber.parent
+    nextFiber = nextFiber.parent;
   }
 
   // //   最后返回父级的兄弟节点
@@ -150,49 +135,17 @@ function initChildren(fiber, children) {
   // 这里直接将children传过来 统一各个函数，然后遍历
   // const children = fiber.props.children
   // 遍历所有的children
-
-  // 原来的树
-  let oldFiber = fiber.alternate?.child
-
   // 记录上一个节点
   let prev = null
   children.forEach((child, index) => {
     //   处理新的结构 ，结构中需要包含 父级，兄弟和旁系结构
-
-    // 判断类型是否相同
-    const isSameType = oldFiber && oldFiber.type === child.type
-
-    let newFiber
-
-    // 判断节点更新 节点相同
-    if (isSameType) {
-      newFiber = {
-        type: child.type,
-        props: child.props,
-        parent: fiber,
-        child: null,
-        sibling: null,
-        dom: oldFiber.dom,
-        // 打上不同标签 并且把原来的fiber挂上
-        alternate: oldFiber,
-        effectTag: "update",
-      }
-    } else {
-      newFiber = {
-        type: child.type,
-        props: child.props,
-        parent: fiber,
-        child: null,
-        sibling: null,
-        dom: null,
-        effectTag: "placement",
-      }
-    }
-
-    // 如果有，需要将原来的元素对应
-    // TODO: 这里不理解
-    if (oldFiber) {
-      oldFiber = oldFiber.sibling
+    const newFiber = {
+      type: child.type,
+      props: child.props,
+      parent: fiber,
+      child: null,
+      sibling: null,
+      dom: null,
     }
 
     // 第一个节点的孩子,直接插入
@@ -209,9 +162,7 @@ function initChildren(fiber, children) {
 }
 
 // 声明根节点
-let wipRoot = null
-// 声明当前的节点
-let currentRoot = null
+let root = null
 let nextWorkflow = null
 // 创建渲染函数
 // 接受元素和容器
@@ -225,56 +176,31 @@ function render(fiber, container) {
   }
   // console.log(nextWorkflow);
   // 根节点
-  wipRoot = nextWorkflow
-}
-
-// 更新节点
-function update() {
-  // 存储下一个当前的树
-  wipRoot = {
-    dom: currentRoot.dom,
-    props: currentRoot.props,
-    // 保存原来的树
-    alternate: currentRoot,
-  }
-  // 根节点
-  nextWorkflow = wipRoot
+  root = nextWorkflow
 }
 
 // 创建统一提交函数
-function commitRoot() {
-  commitWork(wipRoot.child)
-
-  // 统一提交的时候记录一下当前的树
-  currentRoot = wipRoot
+function commitRoot(fiber) {
+  commitWork(fiber)
   // 统一提交后，清空
-  wipRoot = null
+  root = null
 }
 
 // 递归提交
 function commitWork(fiber) {
   // 没有元素终止
   if (!fiber) return
-  let fiberParent = fiber.parent
+  let fiberParent = fiber.parent;
 
   // 当前节点（函数情况下有可能没有dom）没有dom时，向上寻找
   while (!fiberParent.dom) {
-    fiberParent = fiberParent.parent
+    fiberParent = fiberParent.parent;
   }
 
-  // 根据不同标签进行不同操作
-  if (fiber.effectTag === "update") {
-    console.log(fiber)
-    // 更新只做props的更新  把参数传进去
-    updateProps(fiber.dom, fiber.props, fiber.alternate?.props)
-  } else if (fiber.effectTag === "placement") {
-    // 直到查找到有dom的父级节点，在进行渲染
-    // 这里是新建
-    if (fiber.dom) {
-      fiberParent.dom.append(fiber.dom)
-    }
+  // 直到查找到有dom的父级节点，在进行渲染
+  if (fiber.dom) {
+    fiberParent.dom.append(fiber.dom);
   }
-
   // 根节点的child为主节点的parent是 根节点 开始提交 父级节点
   // fiber.parent.dom.append(fiber.dom)
   // 依次提交兄弟和孩子节点
@@ -297,13 +223,13 @@ function workflow(time) {
 
   //   2.在这里统一提交
   // 下一个节点为空 并且有根节点，再统一提交
-  if (!nextWorkflow && wipRoot) {
+  if (!nextWorkflow && root) {
     // 根节点的child为主节点
-    commitRoot()
+    commitRoot(root.child)
   }
 
   //  循环执行,一有空闲时间和有待执行节点，继续执行while中的代码
-  !wipRoot && requestIdleCallback(workflow)
+  requestIdleCallback(workflow)
 }
 
 // fiber 函数 核心api 传入一个回调
@@ -312,6 +238,5 @@ requestIdleCallback(workflow)
 const React = {
   createElement,
   render,
-  update,
 }
 export default React

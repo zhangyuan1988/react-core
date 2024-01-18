@@ -3,18 +3,22 @@ import React from './core/React.js';
 
 
 
+let count = 0;
 
 // function component
 function App() {
     // 声明函数
+
     function click(event){
+        count++
+        React.update()
         console.log(event);
     }
-    return <div>hh <App2 count="1"></App2><button onClick={click}>aaa</button> </div>
+    return <div>hh <App2></App2>{count}<button onClick={click}>aaa</button> </div>
 }
 
-function App2({count}) {
-    return <div>App2{count}</div>
+function App2() {
+    return <div>App</div>
 }
 
 // vite 自动编译以下
