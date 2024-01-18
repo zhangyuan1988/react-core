@@ -12,40 +12,20 @@ function App() {
     // 声明函数
 
     const bar = <div>bar</div>
-    // const Foo = () => {
-    //     return <div>foo
-    //         <div>child</div>
-    //     </div>
-    // }
 
-    const foo = (
-        <div>foo
-            <div>child</div>
-            <div>child</div>
-            <div>child</div>
-        </div>
-    )
+
 
     function handleShowBar() {
         showBar = !showBar;
         React.update()
     }
-    function click(event) {
-        count++
-        React.update()
-        console.log(event);
-    }
+
     return <div>
-
+        counter
+        {showBar && bar}
         <button onClick={handleShowBar}>aaa</button>
-        <div>
-            {showBar ? bar : foo}
-        </div>
-    </div>
-}
 
-function App2() {
-    return <div>App</div>
+    </div>
 }
 
 // vite 自动编译以下
