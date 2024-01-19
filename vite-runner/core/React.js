@@ -279,7 +279,7 @@ function update() {
       // currentFiber就是当前的树，直接展开
       ...currentFiber,
       // 指针 重新指向
-      alternate: currentRoot
+      alternate: currentFiber
     }
     // wipRoot = {
     //   dom: currentRoot.dom,
