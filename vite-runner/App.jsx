@@ -1,65 +1,35 @@
 
 import React from './core/React.js';
 
-let countFoo = 0;
 
-function Foo() {
-    console.log('Foo');
-    // 这里使用 返回的函数 需要在顶部声明
-    const update = React.update()
-    function handleFooClick() {
-        countFoo++
-        // React.update()
-
-        update()
-    }
-    return (
-        <div>
-            <h1>Foo</h1>
-            {countFoo}
-            <button onClick={handleFooClick}>click</button>
-        </div>
-    )
-
-}
-
-
-
-let countBar = 0;
 
 function Bar() {
     console.log('Bar');
     // 这里使用 返回的函数
-    const update = React.update()
+    const [count, setCount] = React.useState(10)
+    const [bar, setBar] = React.useState('bar')
     function handleBarClick() {
-        countBar++
-        update()
+        setCount((c) => c + 1 )
+        setBar((s) => s + 'bar')
+        console.log(count);
+
     }
     return (
         <div>
             <h1>Bar</h1>
-            {countBar}
+            <div>{count}</div>
+            <div>{bar}</div>
             <button onClick={handleBarClick}>click</button>
         </div>
     )
 
 }
 
-let countRoot = 0;
-
 // function component
 function App() {
     // 声明函数
-    console.log("App");
-    function handleCountRoot() {
-        countRoot++
-        React.update()
-    }
 
     return <div>
-        count: {countRoot}
-        <button onClick={handleCountRoot}>aaa</button>
-        <Foo></Foo>
         <Bar></Bar>
     </div>
 }

@@ -1,4 +1,3 @@
-
 // 传统dom
 
 // 创建dom容器
@@ -91,11 +90,7 @@ function updateProps(dom, nextProps, prevProps) {
 
 // 函数式的处理
 function updateFunction(fiber) {
-
-  // 这里初始化hooks
-  stateHooks = [];
-  stateHookIndex = 0;
-  // 保存一下wipFiber
+      // 保存一下wipFiber
   // 这是当前的开始节点
   wipFiber = fiber
   // 将函数形式的组件，执行展开 返回的结构就是dom结构，作为dom的children
@@ -268,7 +263,6 @@ function render(fiber, container) {
   wipRoot = nextWorkflow
 }
 
-
 // 更新节点
 
 // 查找开始和结束点
@@ -298,59 +292,6 @@ function update() {
   }
 }
 
-
-// 处理多个hook的情况使用数组保存
-let stateHooks;
-let stateHookIndex;
-// 更新
-function useState(initial) {
-  // 存储下一个当前的树
-  // wipFiber是全局变量，当再次创建FunctionComponent函数时，会被赋值，这里用闭包保存一下 否则会被下一个覆盖
-  // 放在函数中执行
-  let currentFiber = wipFiber
-  // 先获取老的节点 取之前的节点 通过指针
-  console.log(currentFiber.alternate?.stateHooks);
-  const oldHook = currentFiber.alternate?.stateHooks[stateHookIndex] || null;
-  console.log(oldHook);
-  // 存储当前的state 之前的值
-  // 先取老的值 
-  const stateHook = {
-    state: oldHook ? oldHook.state : initial,
-    queue: oldHook ? oldHook.queue : [],
-  };
-
-  stateHook.queue.forEach((action) => {
-    stateHook.state = action(stateHook.state);
-  });
-
-  // 执行完毕 置空
-  stateHook.queue = []
-
-  // 取完之后index++
-  stateHookIndex++
-  stateHooks.push(stateHook)
-
-  // 将当前的fiber节点中存进hook
-  currentFiber.stateHooks = stateHooks
-
-  // 调用state进行更新 更新方法用以前的
-  function setState(action) {
-    // 调用action（是传递了的函数）并将之前的值传到action回调函数中；
-    stateHook.queue.push(action);// 等于执行后的值 
-
-    wipRoot = {
-      // currentFiber就是当前的树，直接展开
-      ...currentFiber,
-      // 指针 重新指向
-      alternate: currentFiber
-    }
-    // 根节点
-    nextWorkflow = wipRoot
-  }
-
-
-  return [stateHook.state, setState]
-}
 
 // 创建统一提交函数
 function commitRoot() {
@@ -426,13 +367,13 @@ function workflow(time) {
     nextWorkflow = performWorkOfUnit(nextWorkflow)
 
     // wipRoot是当前操作的节点
-    if (wipRoot?.sibling?.type === nextWorkflow?.type) {
+    if(wipRoot?.sibling?.type===nextWorkflow?.type){
       // 当前和下一个相同 需要置空跳出循环
       // 查看当前节点
-      // console.log(wipRoot, nextWorkflow);
+      console.log(wipRoot,nextWorkflow);
       nextWorkflow = undefined
     }
-
+    
     // 当空闲时间大于1时，继续执行
     hasIdleTime = time.timeRemaining() >= 1
   }
@@ -445,7 +386,7 @@ function workflow(time) {
   }
 
   //  循环执行,一有空闲时间和有待执行节点，继续执行while中的代码
-  requestIdleCallback(workflow)
+  !wipRoot && requestIdleCallback(workflow)
 }
 
 // fiber 函数 核心api 传入一个回调
@@ -454,7 +395,6 @@ requestIdleCallback(workflow)
 const React = {
   createElement,
   render,
-  useState,
   update,
 }
 export default React
