@@ -10,7 +10,7 @@ function Bar() {
     const [bar, setBar] = React.useState('bar')
     function handleBarClick() {
         setCount((c) => c + 1 )
-        setBar((s) => s + 'bar')
+        setBar('babar'+1)
         console.log(count);
 
     }

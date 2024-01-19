@@ -319,7 +319,6 @@ function useState(initial) {
     queue: oldHook ? oldHook.queue : [],
   };
 
-  // 重新执行useState时 把之前收集的统一处理掉
   stateHook.queue.forEach((action) => {
     stateHook.state = action(stateHook.state);
   });
@@ -336,18 +335,8 @@ function useState(initial) {
 
   // 调用state进行更新 更新方法用以前的
   function setState(action) {
-
-    // 检测原来的数据和执行后的是否相同
-    const eagerState = typeof action === 'function' ? action(stateHook.state) : action
-    // 相同的下面的数据不再执行
-    if (eagerState === stateHook.state) {
-      return
-    }
-
     // 调用action（是传递了的函数）并将之前的值传到action回调函数中；
-    // 使用队列收集起来 统一处理
-    // 处理action是非function component 的情况
-    stateHook.queue.push(typeof action === "function" ? action : () => action);// 等于执行后的值 
+    stateHook.queue.push(action);// 等于执行后的值 
 
     wipRoot = {
       // currentFiber就是当前的树，直接展开
