@@ -9,11 +9,20 @@ function Bar() {
     const [count, setCount] = React.useState(10)
     const [bar, setBar] = React.useState('bar')
     function handleBarClick() {
-        setCount((c) => c + 1 )
-        setBar('babar'+1)
-        console.log(count);
-
+        setCount((c) => c + 1)
+        setBar('babar' + 1)
     }
+
+    // 副作用函数 首次执行
+    React.useEffect(() => {
+        console.log('init');
+    }, [])
+
+    // 副作用函数 有更新时执行
+    React.useEffect(() => {
+        console.log('update', count);
+    }, [count])
+
     return (
         <div>
             <h1>Bar</h1>
