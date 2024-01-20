@@ -16,11 +16,30 @@ function Bar() {
     // 副作用函数 首次执行
     React.useEffect(() => {
         console.log('init');
+
+        return () => {
+            console.log('clean up 0');
+        }
     }, [])
 
+    // clean up 在调用useEffect 之前调用 ，当deps为空时不会调用返回的cleanup
     // 副作用函数 有更新时执行
     React.useEffect(() => {
         console.log('update', count);
+
+        // 情况副作用
+        return () => {
+            console.log('clean up 1');
+        }
+    }, [count])
+    
+    React.useEffect(() => {
+        console.log('update', count);
+
+        // 情况副作用
+        return () => {
+            console.log('clean up 2');
+        }
     }, [count])
 
     return (

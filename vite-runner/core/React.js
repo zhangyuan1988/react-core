@@ -372,7 +372,9 @@ function useEffect(callback, deps) {
   // 取到callback
   const effectHook = {
     callback,
-    deps,
+    deps: deps || [],
+    // 放在这里
+    cleanup: undefined
   }
 
   // 将hook收集起来
@@ -397,19 +399,22 @@ function commitEffectHooks() {
     if (fiber.alternate) {
       // update 
       // 对比旧的deps 和新的deps 有一个有区别就执行函数
-      fiber.effectHooks?.forEach((newHook,index) => {
-        // 取旧的时 需要加索引
-        const oldEffectHook = fiber.alternate?.effectHooks[index]
-        const needUpdate = oldEffectHook?.deps.some((OldDep, dIndex) =>  OldDep !== newHook.deps[dIndex])
-        console.log(needUpdate);
-        needUpdate && newHook?.callback()
+      fiber.effectHooks?.forEach((newHook, index) => {
+        if (newHook.deps.length > 0) {
+          // 取旧的时 需要加索引
+          const oldEffectHook = fiber.alternate?.effectHooks[index]
+          const needUpdate = oldEffectHook?.deps.some((OldDep, dIndex) => OldDep !== newHook.deps[dIndex])
+          console.log(needUpdate);
+          needUpdate && (newHook.cleanup = newHook?.callback())
+        }
       })
 
     } else {
       // init
       // 当多个hook时 循环调用
       fiber.effectHooks?.forEach((hook) => {
-        hook.callback()
+        // callback 返回的函数存起来
+        hook.cleanup = hook.callback()
       })
       // fiber.effectHook?.callback()
     }
@@ -418,6 +423,25 @@ function commitEffectHooks() {
     run(fiber.sibling)
   }
 
+  // cleanup 在effect调用之前 执行一次，因此在这里
+
+  // 与run基本相似
+  function cleanup(fiber) {
+    if (!fiber) return
+    // 要去之前的节点
+
+    fiber.alternate?.effectHooks?.forEach((hook) => {
+      // 有值才需要执行
+      if(hook.deps.length>0){
+        hook.cleanup && hook.cleanup()
+      }
+    })
+
+    cleanup(fiber.child)
+    cleanup(fiber.sibling)
+  }
+
+  cleanup(wipRoot)
   // 从根节点开始递归
   run(wipRoot)
 
